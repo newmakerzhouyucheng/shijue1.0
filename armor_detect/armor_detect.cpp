@@ -170,10 +170,24 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,st
            //cv::putText(frame,string7,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
            //std::cout << matched_armor[i].angle << std::endl;
 
-           if(ratio_h_w < 2.5f)
-           {
-               final_armor.push_back(matched_armor[i]);
-           }
+           //测试大框面积范围
+           //char string8[10];
+           //double a_string = static_cast<double>(matched_armor[i].size.area());
+           //sprintf(string8,"%.1f",a_string);
+           //cv::putText(frame,string8,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+           //std::cout << matched_armor[i].size.area() << std::endl;
+
+           //不同距离大矩形长宽比不同
+           int a = static_cast<int>(matched_armor[i].size.area());
+           if(a < 1000){
+               if(ratio_h_w < 2.0f){
+                   final_armor.push_back(matched_armor[i]);
+               }
+           }else{
+                if(ratio_h_w < 2.3f){
+                   final_armor.push_back(matched_armor[i]);
+                }
+            }
     }
 }
 /****************************************
@@ -239,12 +253,12 @@ void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&ligh
 
     }
 
-    imshow("gray",gray);
+    //imshow("gray",gray);
     //imshow("color_minus",color_minus);
-    imshow("gray_binary",gray_binary);
+    //imshow("gray_binary",gray_binary);
     //imshow("color_minus_binary",color_minus_binary);
     //imshow("combine_binary",combine_binary);
-    imshow("light_rectangle",light_rectangle);
+    //imshow("light_rectangle",light_rectangle);
 
     light_rect = light_line_conbine;
  
@@ -259,7 +273,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
 {
     for(uint8_t d = 0; d < light_rect.size(); d++)
     {
-        if(light_rect[d].angle > 0)
+        if(light_rect[d].angle >= 0)
         {
             light_rect[d].angle -= 90;
         }
@@ -282,7 +296,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             {
                 area_ratio = (light_rect[i].size.area())*1.0f/light_rect[j].size.area();
             }
-            if(/*sub_angle < 30*/ (20 < sub_center_x && sub_center_x < 1000) && (0 <= sub_center_y && sub_center_y < 20) && area_ratio >= 0.6f && (0<= sub_height && sub_height < 20))
+            if((20 < sub_center_x && sub_center_x < 1000) && (0 <= sub_center_y && sub_center_y < 20) && area_ratio >= 0.6f && (0<= sub_height && sub_height < 20))
             {
                 cv::RotatedRect  armor_rect;
                 armor_rect = BoundingArmorRect(light_rect[i],light_rect[j]);  //大框
@@ -319,12 +333,17 @@ cv::RotatedRect ArmorProcess::BoundingArmorRect(cv::RotatedRect left_rect,cv::Ro
 void ArmorProcess::AdjustRotatedRect(cv::RotatedRect &rect)  
 {
 
-    if(rect.size.width > rect.size.height)
+    if(rect.size.width >= rect.size.height)
     {
         auto temp = rect.size.height;
         rect.size.height = rect.size.width;
         rect.size.width = temp;
         rect.angle += 90;
+    }
+    int a = static_cast<int>(rect.angle);
+    if(a == 90)
+    {
+        rect.angle = 0;
     }
 }
 /****************************************
