@@ -1,4 +1,4 @@
-﻿#include "visual_proc.h"
+#include "visual_proc.h"
 #include "cam_driver/open_camera.h"
 #include "armor_detect/armor_detect.h"
 #include "usb_serial/serial_usb.h"
@@ -18,7 +18,7 @@ static UsbSerial usb_serial;
 void VisualProc::produce()
 {
     cv::VideoCapture cap("/home/newmaker/ZZZ/6m.wmv");
-    //dvpStr cam_config_path = "/home/newmaker/ZZZ/Test_2/test_1.ini";
+    //dvpStr cam_config_path = "/home/newmaker/ZZZ/test_1.ini";
     //usb_serial.SerialInit();
     //OpenCamera cam_num_1;
     //cam_num_1.OpenFrame(cam_config_path);

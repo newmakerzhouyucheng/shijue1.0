@@ -209,11 +209,11 @@ void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&ligh
     {
         subtract(channels[2],channels[1],color_minus);
     }
-    cv::threshold(gray,gray_binary,150,255,CV_THRESH_BINARY);
-    cv::threshold(color_minus,color_minus_binary,50,255,CV_THRESH_BINARY);
+    cv::threshold(gray,gray_binary,130,255,CV_THRESH_BINARY);
+    cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     cv::dilate(gray_binary,gray_binary,element,cv::Point(-1,-1),1);
     combine_binary = color_minus_binary & gray_binary;
-    dilate(combine_binary,combine_binary,element,cv::Point(-1,-1),3);
+    cv::dilate(combine_binary,combine_binary,element,cv::Point(-1,-1),2);
 
     findContours(combine_binary,combine_binary_contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
     light_line_conbine.reserve(combine_binary_contours.size());
@@ -239,12 +239,12 @@ void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&ligh
 
     }
 
-    //imshow("gray",gray);
+    imshow("gray",gray);
     //imshow("color_minus",color_minus);
-    //imshow("gray_binary",gray_binary);
+    imshow("gray_binary",gray_binary);
     //imshow("color_minus_binary",color_minus_binary);
     //imshow("combine_binary",combine_binary);
-    //imshow("light_rectangle",light_rectangle);
+    imshow("light_rectangle",light_rectangle);
 
     light_rect = light_line_conbine;
  
@@ -272,9 +272,9 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             auto sub_center_x = abs(light_rect[i].center.x - light_rect[j].center.x);      //中心点x坐标差值
             auto sub_center_y = abs(light_rect[i].center.y - light_rect[j].center.y);      //中心点y坐标差值
             float sub_height = abs(light_rect[i].size.height - light_rect[j].size.height); //高度差值
-            float sub_angle = abs(abs(light_rect[i].angle) - abs(light_rect[j].angle));    //角度差值
+            //float sub_angle = abs(abs(light_rect[i].angle) - abs(light_rect[j].angle));    //角度差值   //加角度就有跳动
             float area_ratio = 0;                                                          //两个灯条的面积比例
-            if(light_rect[i].size.area()>=light_rect[j].size.area())
+            if(light_rect[i].size.area()>light_rect[j].size.area())
             {
                 area_ratio = (light_rect[j].size.area())*1.0f/light_rect[i].size.area();
             }
@@ -282,7 +282,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             {
                 area_ratio = (light_rect[i].size.area())*1.0f/light_rect[j].size.area();
             }
-            if(sub_angle < 12 && (25 < sub_center_x && sub_center_x < 640) && (0 < sub_center_y && sub_center_y < 20) && area_ratio >= 0.67f && (0<= sub_height && sub_height < 20))
+            if(/*sub_angle < 30*/ (20 < sub_center_x && sub_center_x < 1000) && (0 <= sub_center_y && sub_center_y < 20) && area_ratio >= 0.6f && (0<= sub_height && sub_height < 20))
             {
                 cv::RotatedRect  armor_rect;
                 armor_rect = BoundingArmorRect(light_rect[i],light_rect[j]);  //大框
@@ -296,7 +296,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
 * @brief    找到包围左右灯条的最小矩形
 * @para
 * @return   包围左右灯条的最小矩形
-*****************************************/
+************************************/
 cv::RotatedRect ArmorProcess::BoundingArmorRect(cv::RotatedRect left_rect,cv::RotatedRect right_rect)
 {
     const cv::Point & pl = left_rect.center, & pr = right_rect.center;
@@ -344,7 +344,7 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
     }
     for(const auto &light :light_rect)
     {
-        if(abs(light.angle) >= 0 && abs(light.angle) <= 15 && light.size.area()> 70 )
+        if(abs(light.angle) >= 0 && abs(light.angle) <= 30 && light.size.area()> 60 )
         {
             temp_light_rect.push_back(light);
             DrawRotatedRect(frame_select ,light,cv::Scalar(0,0,255),1);
@@ -376,7 +376,7 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
 
     }
 
-    imshow("frame_select",frame_select);
+    //imshow("frame_select",frame_select);
     light_rect = temp_light_rect;
 }
 
