@@ -27,7 +27,7 @@ void AngleSolver::PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info
     double tx = translation_vector.at<double>(0,0);
     double ty = translation_vector.at<double>(1,0);
     double tz = translation_vector.at<double>(2,0);
-    double dis  =sqrt(tx*tx+ty*ty+ tz*tz);
+    double dis = sqrt(tx*tx+ty*ty+ tz*tz);
 
     double angle_yaw = atan2(abs(tx),tz) * 180 / 3.1415926;
 

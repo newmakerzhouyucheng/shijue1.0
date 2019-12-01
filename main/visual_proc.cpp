@@ -17,7 +17,7 @@ static UsbSerial usb_serial;
 *****************************************/
 void VisualProc::produce()
 {
-    cv::VideoCapture cap("/home/newmaker/ZZZ/3m.wmv");
+    cv::VideoCapture cap("/home/newmaker/ZZZ/6m.wmv");
     //dvpStr cam_config_path = "/home/newmaker/ZZZ/test_1.ini";
     //usb_serial.SerialInit();
     //OpenCamera cam_num_1;

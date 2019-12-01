@@ -21,9 +21,9 @@ public:
     void PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info);
     void SolverDataProcess(uint8_t *armor_data,ArmorPosture fight_info);
     void AngleChange(ArmorPosture &fight_info);
-private:
     void GetImage2dPoint(cv::RotatedRect object_rect,std::vector<Point2f> &object2d_point,ArmorPosture fight_info);
     void GetAngleDistance(const std::vector<cv::Point2f> & points2d, cv::Mat & rot, cv::Mat & trans);
+private:
     void GetAngleDistance_big(const std::vector<cv::Point2f> & points2d, cv::Mat & rot, cv::Mat & trans);
 };
 

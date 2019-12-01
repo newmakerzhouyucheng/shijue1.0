@@ -47,6 +47,9 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
     vector<cv::RotatedRect>frame_sec;
     vector<cv::RotatedRect>frame_ang;
     vector<cv::RotatedRect>frame_final;
+    cv::RotatedRect frame_std1;
+    cv::RotatedRect frame_std2;
+    cv::RotatedRect frame_std3;
     //cv::Point2f point_roi[4];
     uint8_t pc_data[10];
     //Rect ROI;
@@ -64,7 +67,21 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
         ArmorRectCheck(frame_sec,frame_ang,frame);  //大框长宽比筛选
         if(frame_ang.size()>0)
         {
-        ArmorAngleCheck(frame_ang,frame_final);  //大框最小角度框筛选
+            ArmorAngleCheck(frame_ang,frame_std1);  //大框最小角度框筛选1
+            ArmorAreaCheck(frame_ang,frame_std2);  //大框最大面积筛选2
+            ArmorDistanceCheck(frame_ang,frame_std3,fight_info);  //大框最近距离筛选3
+            if(frame_std1.size == frame_std2.size)
+            {
+                frame_final.push_back(frame_std1);
+            }
+            else if(frame_std1.size == frame_std3.size)
+            {
+                frame_final.push_back(frame_std1);
+            }
+            else if(frame_std2.size == frame_std3.size)
+            {
+                frame_final.push_back(frame_std2);
+            }
         }else
         {
             frame_final = frame_ang;
@@ -118,9 +135,8 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
     serial_usb.SerialSendData(pc_data);
 }
 
-void ArmorProcess::ArmorAngleCheck(std::vector<cv::RotatedRect> &matched_armor,std::vector<cv::RotatedRect> &final_armor)
+void ArmorProcess::ArmorAngleCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor)
 {
-    final_armor.clear();
     //大框角度转化
     for(uint8_t i = 0; i < matched_armor.size(); i++)
     {
@@ -138,7 +154,37 @@ void ArmorProcess::ArmorAngleCheck(std::vector<cv::RotatedRect> &matched_armor,s
     {
         return  ld1.angle < ld2.angle;
     });
-    final_armor.push_back(matched_armor[0]);
+    final_armor = matched_armor[0];
+}
+
+void ArmorProcess::ArmorAreaCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor)
+{
+    sort(matched_armor.begin(),matched_armor.end(),[](const RotatedRect& ld1, const RotatedRect& ld2)
+    {
+        return ld1.size.area() > ld2.size.area();
+    });
+    final_armor = matched_armor[0];
+}
+
+void ArmorProcess::ArmorDistanceCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor,ArmorPosture fight_info)
+{
+    AngleSolver a;
+    cv::Mat rot_vector,translation_vector;
+    vector<Point2f> object2d_point;
+    vector<double> distance;
+    for(uint8_t i = 0; i < matched_armor.size(); i++)
+    {
+    a.GetImage2dPoint(matched_armor[i],object2d_point,fight_info);  //像素坐标系排序
+    a.GetAngleDistance(object2d_point,rot_vector,translation_vector);  //pnp结算
+    double tx = translation_vector.at<double>(0,0);
+    double ty = translation_vector.at<double>(1,0);
+    double tz = translation_vector.at<double>(2,0);
+    double dis = sqrt(tx*tx+ty*ty+ tz*tz);
+    distance.push_back(dis);
+    }
+    std::vector<double>::iterator smallist = std::min_element(std::begin(distance),std::end(distance));
+    uint8_t d = static_cast<uint8_t>(std::distance(std::begin(distance),smallist));
+    final_armor = matched_armor[d];
 }
 
 /****************************************
@@ -196,7 +242,8 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,st
 * @para     Mat 原始图像 ,
 * @return   RotatedRect 灯条旋转矩形向量
 *****************************************/
-void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture fight_info)
+void ArmorProcess::
+DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture fight_info)
 {
     light_rect.clear();
     cv::Mat gray;
@@ -225,7 +272,8 @@ void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&ligh
     }
     cv::threshold(gray,gray_binary,130,255,CV_THRESH_BINARY);
     cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
-    cv::dilate(gray_binary,gray_binary,element,cv::Point(-1,-1),1);
+    //cv::dilate(gray_binary,gray_binary,element,cv::Point(-1,-1),1);
+    cv::dilate(color_minus_binary,color_minus_binary,element,cv::Point(-1,-1),1);
     combine_binary = color_minus_binary & gray_binary;
     cv::dilate(combine_binary,combine_binary,element,cv::Point(-1,-1),2);
 
@@ -255,8 +303,8 @@ void ArmorProcess::DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&ligh
 
     //imshow("gray",gray);
     //imshow("color_minus",color_minus);
-    //imshow("gray_binary",gray_binary);
-    //imshow("color_minus_binary",color_minus_binary);
+    imshow("gray_binary",gray_binary);
+    imshow("color_minus_binary",color_minus_binary);
     //imshow("combine_binary",combine_binary);
     //imshow("light_rectangle",light_rectangle);
 
@@ -286,7 +334,6 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             auto sub_center_x = abs(light_rect[i].center.x - light_rect[j].center.x);      //中心点x坐标差值
             auto sub_center_y = abs(light_rect[i].center.y - light_rect[j].center.y);      //中心点y坐标差值
             float sub_height = abs(light_rect[i].size.height - light_rect[j].size.height); //高度差值
-            //float sub_angle = abs(abs(light_rect[i].angle) - abs(light_rect[j].angle));    //角度差值   //加角度就有跳动
             float area_ratio = 0;                                                          //两个灯条的面积比例
             if(light_rect[i].size.area()>light_rect[j].size.area())
             {
@@ -443,6 +490,7 @@ void ArmorProcess::DrawArmorRect(const cv::Mat &image, const cv::RotatedRect &re
     for (int i=0; i<4; i++)
     cv::line(image, vertex[i], vertex[(i+1)%4], color, thickness);
 }
+
 void ArmorProcess::GetTargetRoi(cv::Mat &frame,ArmorPosture &fight_info)
 {
     cv::RotatedRect temp_rect = fight_info.target_rect;
