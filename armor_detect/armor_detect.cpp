@@ -265,14 +265,15 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
     if(fight_info.armor_color == BLUE)
     {
         subtract(channels[0],channels[1],color_minus);
+        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
+        cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
     if(fight_info.armor_color == RED)
     {
         subtract(channels[2],channels[1],color_minus);
+        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
+        cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
-    cv::threshold(gray,gray_binary,130,255,CV_THRESH_BINARY);
-    cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
-    //cv::dilate(gray_binary,gray_binary,element,cv::Point(-1,-1),1);
     cv::dilate(color_minus_binary,color_minus_binary,element,cv::Point(-1,-1),1);
     combine_binary = color_minus_binary & gray_binary;
     cv::dilate(combine_binary,combine_binary,element,cv::Point(-1,-1),2);
@@ -303,10 +304,10 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
 
     //imshow("gray",gray);
     //imshow("color_minus",color_minus);
-    imshow("gray_binary",gray_binary);
-    imshow("color_minus_binary",color_minus_binary);
+    //imshow("gray_binary",gray_binary);
+    //imshow("color_minus_binary",color_minus_binary);
     //imshow("combine_binary",combine_binary);
-    //imshow("light_rectangle",light_rectangle);
+    imshow("light_rectangle",light_rectangle);
 
     light_rect = light_line_conbine;
  
@@ -343,7 +344,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             {
                 area_ratio = (light_rect[i].size.area())*1.0f/light_rect[j].size.area();
             }
-            if((20 < sub_center_x && sub_center_x < 1000) && (0 <= sub_center_y && sub_center_y < 20) && area_ratio >= 0.6f && (0<= sub_height && sub_height < 20))
+            if((20 < sub_center_x && sub_center_x < 1000) && (0 <= sub_center_y && sub_center_y < 30) && area_ratio >= 0.5f && (0 <= sub_height && sub_height < 30))
             {
                 cv::RotatedRect  armor_rect;
                 armor_rect = BoundingArmorRect(light_rect[i],light_rect[j]);  //大框
