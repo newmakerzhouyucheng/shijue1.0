@@ -65,24 +65,24 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
     if(frame_sec.size()>0)
     {
         ArmorRectCheck(frame_sec,frame_ang,frame);  //大框长宽比筛选
-        if(frame_ang.size()>0)
-        {
-            ArmorAngleCheck(frame_ang,frame_std1);  //大框最小角度框筛选1
-            ArmorAreaCheck(frame_ang,frame_std2);  //大框最大面积筛选2
-            ArmorDistanceCheck(frame_ang,frame_std3,fight_info);  //大框最近距离筛选3
-            if(frame_std1.size == frame_std2.size)
+        //if(frame_ang.size()>0)
+        //{
+            //ArmorAngleCheck(frame_ang,frame_std1);  //大框最小角度框筛选1
+            //ArmorHeightCheck(frame_ang,frame_std2);  //大框最大高度筛选2
+            //ArmorDistanceCheck(frame_ang,frame_std3,fight_info);  //大框最近距离筛选3
+            //if(frame_std1.size == frame_std2.size)
             {
-                frame_final.push_back(frame_std1);
+                //frame_final.push_back(frame_std1);
             }
-            else if(frame_std1.size == frame_std3.size)
+            //else if(frame_std1.size == frame_std3.size)
             {
-                frame_final.push_back(frame_std1);
+                //frame_final.push_back(frame_std3);
             }
-            else if(frame_std2.size == frame_std3.size)
+            //else if(frame_std2.size == frame_std3.size)
             {
-                frame_final.push_back(frame_std2);
+                //frame_final.push_back(frame_std2);
             }
-        }else
+        //}else
         {
             frame_final = frame_ang;
         }
@@ -103,7 +103,8 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
                 armor_Solver.PnPSolver(frame_final[i],fight_info);  //包含pnp结算和数据处理
                 armor_Solver.SolverDataProcess(pc_data,fight_info);
             }
-        //}
+
+
 
     }
     else
@@ -157,11 +158,11 @@ void ArmorProcess::ArmorAngleCheck(std::vector<cv::RotatedRect> &matched_armor,c
     final_armor = matched_armor[0];
 }
 
-void ArmorProcess::ArmorAreaCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor)
+void ArmorProcess::ArmorHeightCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor)
 {
     sort(matched_armor.begin(),matched_armor.end(),[](const RotatedRect& ld1, const RotatedRect& ld2)
     {
-        return ld1.size.area() > ld2.size.area();
+        return ld1.size.height > ld2.size.height;
     });
     final_armor = matched_armor[0];
 }
@@ -255,9 +256,8 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
 
     std::vector<cv::Mat> channels;
     std::vector<cv::RotatedRect> light_line_conbine;
+    std::vector<std::vector<cv::Point>> gray_binary_contours;
     std::vector<std::vector<cv::Point>> combine_binary_contours;
-
-    cv::Mat element = getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));
 
     cv::cvtColor(frame,gray,CV_BGR2GRAY);
     cv::blur(gray,gray,cv::Size(3,3));
@@ -265,27 +265,38 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
     if(fight_info.armor_color == BLUE)
     {
         subtract(channels[0],channels[1],color_minus);
-        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
+        cv::threshold(gray,gray_binary,110,255,CV_THRESH_BINARY);
         cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
     if(fight_info.armor_color == RED)
     {
         subtract(channels[2],channels[1],color_minus);
-        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
+        cv::threshold(gray,gray_binary,110,255,CV_THRESH_BINARY);
         cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
+
+    cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));
     cv::dilate(color_minus_binary,color_minus_binary,element,cv::Point(-1,-1),1);
+
     combine_binary = color_minus_binary & gray_binary;
     cv::dilate(combine_binary,combine_binary,element,cv::Point(-1,-1),2);
 
+    findContours(gray_binary,gray_binary_contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
     findContours(combine_binary,combine_binary_contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
     light_line_conbine.reserve(combine_binary_contours.size());
+
+    //使用两个不同的二值化阈值同时进行灯条提取,减少环境光照对二值化这个操作的影响
     for(uint i = 0; i < combine_binary_contours.size(); ++i)
     {
-        cv::RotatedRect light_line = cv::minAreaRect(combine_binary_contours[i]);
-        light_line_conbine.push_back(light_line);
-        DrawRotatedRect(light_rectangle, light_line,cv::Scalar(255,0,255), 1);  //画框
-
+        //for(uint j = 0; j < gray_binary_contours.size(); ++j)
+        {
+            //if(cv::pointPolygonTest(gray_binary_contours[j],combine_binary_contours[i][0],true) >= 0.0)
+            {
+                cv::RotatedRect light_line = cv::minAreaRect(combine_binary_contours[i]);
+                light_line_conbine.push_back(light_line);
+                DrawRotatedRect(light_rectangle, light_line,cv::Scalar(255,0,255), 1);  //画框
+            }
+        }
         //测底盘装甲板灯条小矩形角度范围
         //char string1[10];
         //double angle_string = static_cast<double>(light_line.angle);
@@ -306,7 +317,7 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
     //imshow("color_minus",color_minus);
     //imshow("gray_binary",gray_binary);
     //imshow("color_minus_binary",color_minus_binary);
-    //imshow("combine_binary",combine_binary);
+    imshow("combine_binary",combine_binary);
     imshow("light_rectangle",light_rectangle);
 
     light_rect = light_line_conbine;
@@ -336,7 +347,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
             auto sub_center_y = abs(light_rect[i].center.y - light_rect[j].center.y);      //中心点y坐标差值
             float sub_height = abs(light_rect[i].size.height - light_rect[j].size.height); //高度差值
             float area_ratio = 0;                                                          //两个灯条的面积比例
-            if(light_rect[i].size.area()>light_rect[j].size.area())
+            if(light_rect[i].size.area() > light_rect[j].size.area())
             {
                 area_ratio = (light_rect[j].size.area())*1.0f/light_rect[i].size.area();
             }

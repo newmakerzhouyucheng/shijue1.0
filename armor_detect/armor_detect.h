@@ -61,7 +61,7 @@ private:
     void AdjustRotatedRect(cv::RotatedRect &rect);
     void ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std::vector<cv::RotatedRect> &matched_armor);
     void ArmorAngleCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor);
-    void ArmorAreaCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor);
+    void ArmorHeightCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor);
     void ArmorDistanceCheck(std::vector<cv::RotatedRect> &matched_armor,cv::RotatedRect &final_armor,ArmorPosture fight_info);
     void ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,std::vector<cv::RotatedRect> &final_armor,cv::Mat frame);
     void DrawArmorRect(const cv::Mat &image, const cv::RotatedRect &rect, const cv::Scalar &color, int thickness);
