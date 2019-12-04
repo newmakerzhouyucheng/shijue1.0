@@ -64,7 +64,7 @@ void VisualProc::produce()
             std::string str = "NO_COLOR";
             cv::putText(src_image, fpsString,cv::Point(230, 50),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0, 255, 0),2);
         }
-        else if(ArmorType ==BLUE)
+        else if(ArmorType == BLUE)
         {
             std::string str = "Fight Blue";
             cv::putText(src_image, str,cv::Point(230, 50),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0, 255, 0),2);

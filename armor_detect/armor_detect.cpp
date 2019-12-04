@@ -1,4 +1,4 @@
-#include "armor_detect/armor_detect.h"
+﻿#include "armor_detect/armor_detect.h"
 #include "Info_solver/angle_solver.h"
 #include "cam_driver/open_camera.h"
 #include "usb_serial/serial_usb.h"
@@ -65,10 +65,10 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
     if(frame_sec.size()>0)
     {
         ArmorRectCheck(frame_sec,frame_ang,frame);  //大框长宽比筛选
-        //if(frame_ang.size()>0)
-        //{
+        if(frame_ang.size()>0)
+        {
             //ArmorAngleCheck(frame_ang,frame_std1);  //大框最小角度框筛选1
-            //ArmorHeightCheck(frame_ang,frame_std2);  //大框最大高度筛选2
+            ArmorHeightCheck(frame_ang,frame_std2);  //大框最大高度筛选2
             //ArmorDistanceCheck(frame_ang,frame_std3,fight_info);  //大框最近距离筛选3
             //if(frame_std1.size == frame_std2.size)
             {
@@ -80,9 +80,9 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
             }
             //else if(frame_std2.size == frame_std3.size)
             {
-                //frame_final.push_back(frame_std2);
+                frame_final.push_back(frame_std2);
             }
-        //}else
+        }else
         {
             frame_final = frame_ang;
         }
@@ -99,7 +99,7 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
             for(uint i = 0; i< frame_final.size(); i++)
             {
                 pc_data[7] = 1;
-                DrawArmorRect(frame,frame_final[i],cv::Scalar(160, 15, 190),5);  //画大框
+                DrawArmorRect(frame,frame_final[i],cv::Scalar(160, 15, 190),2);  //画大框
                 armor_Solver.PnPSolver(frame_final[i],fight_info);  //包含pnp结算和数据处理
                 armor_Solver.SolverDataProcess(pc_data,fight_info);
             }
@@ -162,8 +162,21 @@ void ArmorProcess::ArmorHeightCheck(std::vector<cv::RotatedRect> &matched_armor,
 {
     sort(matched_armor.begin(),matched_armor.end(),[](const RotatedRect& ld1, const RotatedRect& ld2)
     {
-        return ld1.size.height > ld2.size.height;
+        return ld1.size.area() > ld2.size.area();
     });
+    double area_minus = static_cast<double>(matched_armor[0].size.area() - matched_armor[1].size.area());
+    double a = static_cast<double>(MAX(matched_armor[0].size.area(), matched_armor[1].size.area()));
+    double b = static_cast<double>(a/area_minus);
+    if(b > 2)
+    {
+        if(matched_armor[0].center.x < matched_armor[1].center.x)
+        {
+            final_armor = matched_armor[0];
+        }else
+        {
+            final_armor = matched_armor[1];
+        }
+    }
     final_armor = matched_armor[0];
 }
 
@@ -183,6 +196,10 @@ void ArmorProcess::ArmorDistanceCheck(std::vector<cv::RotatedRect> &matched_armo
     double dis = sqrt(tx*tx+ty*ty+ tz*tz);
     distance.push_back(dis);
     }
+    //sort(distance.begin(),distance.end(),[](const double& a, const double& b)
+    //{
+        //return a > b;
+    //});
     std::vector<double>::iterator smallist = std::min_element(std::begin(distance),std::end(distance));
     uint8_t d = static_cast<uint8_t>(std::distance(std::begin(distance),smallist));
     final_armor = matched_armor[d];
@@ -224,17 +241,16 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,st
            //cv::putText(frame,string8,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
            //std::cout << matched_armor[i].size.area() << std::endl;
 
-           //不同距离大矩形长宽比不同
-           int a = static_cast<int>(matched_armor[i].size.area());
-           if(a < 1000){
-               if(ratio_h_w < 2.0f){
-                   final_armor.push_back(matched_armor[i]);
-               }
-           }else{
-                if(ratio_h_w < 2.3f){
-                   final_armor.push_back(matched_armor[i]);
-                }
-            }
+           if(ratio_h_w < 2.3f)
+           {
+              final_armor.push_back(matched_armor[i]);
+              char string8[10];
+              double a_string = static_cast<double>(matched_armor[i].size.area());
+              sprintf(string8,"%.1f",a_string);
+              cv::putText(frame,string8,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+              std::cout << matched_armor[i].size.area() << std::endl;
+           }
+
     }
 }
 /****************************************
@@ -265,13 +281,13 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
     if(fight_info.armor_color == BLUE)
     {
         subtract(channels[0],channels[1],color_minus);
-        cv::threshold(gray,gray_binary,110,255,CV_THRESH_BINARY);
+        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
         cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
     if(fight_info.armor_color == RED)
     {
         subtract(channels[2],channels[1],color_minus);
-        cv::threshold(gray,gray_binary,110,255,CV_THRESH_BINARY);
+        cv::threshold(gray,gray_binary,100,255,CV_THRESH_BINARY);
         cv::threshold(color_minus,color_minus_binary,60,255,CV_THRESH_BINARY);
     }
 
