@@ -466,10 +466,10 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
         //std::cout << temp_light_rect[i].center.x << std::endl;
 
         //测试底盘应该匹配的小灯条中心y差值
-        char string5[10];
-        double x_string = static_cast<double>(temp_light_rect[i].center.y);
-        sprintf(string5,"%.1f",x_string);
-        cv::putText(frame_select,string5,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+        //char string5[10];
+        //double x_string = static_cast<double>(temp_light_rect[i].center.y);
+        //sprintf(string5,"%.1f",x_string);
+        //cv::putText(frame_select,string5,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
         //std::cout << temp_light_rect[i].center.y << std::endl;
 
         //测试底盘应该匹配的小灯条高度差值

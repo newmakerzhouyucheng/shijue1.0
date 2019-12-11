@@ -67,6 +67,7 @@ bool OpenCamera::OpenFrame(dvpStr camera_congig_file)
    dvpLoadConfig(m_handle,path);
    return true;
 }
+
 cv::Mat OpenCamera::GetFrame()
 {
     cv::Mat mat_src;

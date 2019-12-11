@@ -12,17 +12,7 @@ void AngleSolver::PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info
     Mat rot_vector,translation_vector;
     vector<Point2f> object2d_point;
     GetImage2dPoint(object_rect,object2d_point,fight_info);  //像素坐标系排序
-    //cout<<object_rect.size.height<<"-"<<object_rect.size.width<<endl;
-//    if(std::max(object_rect.size.height,object_rect.size.width)/std::min(object_rect.size.height,object_rect.size.width) >3.0f)
-//    {
-//        GetAngleDistance_big(object2d_point,rot_vector,translation_vector);
-//        //fight_info.armor_type = BIG_ARMOR;
-//    }
-//    else
-    {
-        GetAngleDistance(object2d_point,rot_vector,translation_vector);  //pnp结算
-        //fight_info.armor_type = SMALL_ARMOR;
-    }
+    GetAngleDistance(object2d_point,rot_vector,translation_vector);  //pnp结算
 
     double tx = translation_vector.at<double>(0,0);
     double ty = translation_vector.at<double>(1,0);
@@ -115,7 +105,7 @@ void AngleSolver::GetAngleDistance(const std::vector<cv::Point2f> & points2d, cv
     std::vector<cv::Point3f> point3d;
     //小装甲
     //float half_x = 13.8f/2.0f;  //width_target / 2.0;
-    float half_x = 12.4f/2.0f;
+    float half_x = 13.5f/2.0f;
     float half_y = 5.4f/2.0f;  //height_target / 2.0;
     //三维点
     point3d.push_back(Point3f(-half_x, -half_y, 0));

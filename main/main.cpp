@@ -12,8 +12,8 @@ int main()
 {
     VisualProc visual_proc;
     std::thread ImgProduce(&VisualProc::produce,&visual_proc);  
-    //std::thread ImgConsume(&VisualProc::consumer,&visual_proc);
+    std::thread ImgConsume(&VisualProc::consumer,&visual_proc);
     ImgProduce.join();
-    //ImgConsume.join();
+    ImgConsume.join();
     return 0;
 }

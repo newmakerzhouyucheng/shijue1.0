@@ -19,7 +19,7 @@ public:
     VisualProc()
     {
         mode = 0;
-        ArmorType = BLUE;
+        ArmorType = NO_GET;
     }
     void produce();
     void consumer();

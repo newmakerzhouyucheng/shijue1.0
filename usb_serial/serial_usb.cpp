@@ -22,13 +22,13 @@ bool UsbSerial::SerialInit()
 
     tcgetattr(fd, &SerialPortSettings);	/* Get the current attributes of the Serial port */
 
-    cfsetispeed(&SerialPortSettings,B9600); /* Set Read  Speed as 9600                       */
-    cfsetospeed(&SerialPortSettings,B9600); /* Set Write Speed as 9600                       */
+    cfsetispeed(&SerialPortSettings,B115200); /* Set Read  Speed as 9600                       */
+    cfsetospeed(&SerialPortSettings,B115200); /* Set Write Speed as 9600                       */
 
     SerialPortSettings.c_cflag &= ~PARENB;   /* Disables the Parity Enable bit(PARENB),So No Parity   */
     SerialPortSettings.c_cflag &= ~CSTOPB;   /* CSTOPB = 2 Stop bits,here it is cleared so 1 Stop bit */
     SerialPortSettings.c_cflag &= ~CSIZE;	 /* Clears the mask for setting the data size             */
-    SerialPortSettings.c_cflag |=  CS8;      /* Set the data bits = 8                                 */
+    SerialPortSettings.c_cflag |= CS8;       /* Set the data bits = 8                                 */
 
     SerialPortSettings.c_cflag &= ~CRTSCTS;       /* No Hardware flow Control                         */
     SerialPortSettings.c_cflag |= CREAD | CLOCAL; /* Enable receiver,Ignore Modem Control lines       */
@@ -46,7 +46,7 @@ bool UsbSerial::SerialInit()
     }
     else
     {
-        cout<<"\n  BaudRate = 115200 \n  StopBits = 1 \n  Parity   = none"<<endl;
+        cout<<"\n  BaudRate = 115200 \n  StopBits = 1 \n  Parity = none"<<endl;
         cout<<"Serial Start Work "<<endl;
     }
     tcflush(fd,TCIFLUSH);
@@ -59,17 +59,14 @@ bool UsbSerial::SerialInit()
 bool UsbSerial::SerialSendData(uint8_t* serial_data)
 {
     int  bytes_written  = 0;
-    //uint8_t buff[]={0x33};
-
-    //bytes_written = write(fd,write_buffer,sizeof(write_buffer));/* use write() to send data to port                                            */
     bytes_written = write(fd,serial_data,10);
 }
 
 void UsbSerial::SerialRecData(uint8_t * serial_data)
 {
-    uint8_t read_buffer[3];
+    uint8_t read_buffer[10];
     int bytes_read = 0;
-    bytes_read = read(fd,&read_buffer,3);
+    bytes_read = read(fd,&read_buffer,10);
 
     if(bytes_read >0)
     {

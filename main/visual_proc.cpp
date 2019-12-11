@@ -17,11 +17,11 @@ static UsbSerial usb_serial;
 *****************************************/
 void VisualProc::produce()
 {
-    cv::VideoCapture cap("/home/newmaker/ZZZ/6m.wmv");
-    //dvpStr cam_config_path = "/home/newmaker/ZZZ/test_1.ini";
-    //usb_serial.SerialInit();
-    //OpenCamera cam_num_1;
-    //cam_num_1.OpenFrame(cam_config_path);
+    //cv::VideoCapture cap("/home/newmaker/ZZZ/6m.wmv");
+    dvpStr cam_config_path = "/home/newmaker/ZZZ/test_1.ini";
+    usb_serial.SerialInit();
+    OpenCamera cam_num_1;
+    cam_num_1.OpenFrame(cam_config_path);
     cv::Mat src_image;
 
     ArmorProcess armor;
@@ -30,8 +30,8 @@ void VisualProc::produce()
 
     while (true)
     {
-        cap >> src_image;
-        //src_image = cam_num_1.GetFrame();
+        //cap >> src_image;
+        src_image = cam_num_1.GetFrame();
         //cv::resize(src_image,src_image,cv::Size(640,480));
         double time = cv::getTickCount();
 
@@ -75,7 +75,7 @@ void VisualProc::produce()
             cv::putText(src_image, str,cv::Point(230, 50),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0, 255, 0),2);
         }
         imshow("src_image",src_image);
-        if(cv::waitKey(1) == 'q')
+        if(cv::waitKey(50) == 'q')
         {
             cv::destroyAllWindows();
             break;
@@ -84,9 +84,10 @@ void VisualProc::produce()
         //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
 }
+
 void VisualProc::consumer()
 {
-    uint8_t rec_data[3];
+    uint8_t rec_data[10];
     static int num = 0;
     while (true)
     {
@@ -108,7 +109,9 @@ void VisualProc::consumer()
                 enemy_color = 1;
             }
             if(rec_data[0] == 'q')
-            {break;}
+            {
+                break;
+            }
         }
         // std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
