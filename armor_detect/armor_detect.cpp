@@ -41,7 +41,7 @@ cv::Rect ArmorProcess::GetRoi(cv::Mat &src_image)
 
 void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial serial_usb)
 {
-    //vector<Point2f> point_s;
+    int distance_mode;
     AngleSolver armor_Solver;
     vector<cv::RotatedRect>frame_dis;    
     vector<cv::RotatedRect>frame_sec;
@@ -50,21 +50,19 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
     cv::RotatedRect frame_std1;
     cv::RotatedRect frame_std2;
     cv::RotatedRect frame_std3;
-    //cv::Point2f point_roi[4];
     uint8_t pc_data[10];
-    //Rect ROI;
 
     /*DetectLightBar   Way of RGB  */
     DetectLightBarBgr(frame,frame_dis,fight_info);
     /*DetectLightBar   Way of HSV  */
     //DetectLightBarHsv(src_image,light_rect);
 
-    CheckLightBarRect(frame_dis,frame);  //角度筛选
+    CheckLightBarRect(frame_dis,frame,distance_mode);  //角度筛选
     
     ArmorMatchedRect(frame_dis,frame_sec);  //灯条匹配
     if(frame_sec.size()>0)
     {
-        ArmorRectCheck(frame_sec,frame_ang,frame);  //大框长宽比角度筛选
+        ArmorRectCheck(frame_dis,frame_sec,frame_ang,distance_mode,frame);  //大框长宽比角度筛选
         if(frame_ang.size()>0)
         {
             //ArmorAngleCheck(frame_ang,frame_std1);  //大框最小角度框筛选1
@@ -103,9 +101,6 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
                 armor_Solver.PnPSolver(frame_final[i],fight_info);  //包含pnp结算和数据处理
                 armor_Solver.SolverDataProcess(pc_data,fight_info);
             }
-
-
-
     }
     else
     {
@@ -177,7 +172,6 @@ void ArmorProcess::ArmorHeightCheck(std::vector<cv::RotatedRect> &matched_armor,
             //final_armor = matched_armor[1];
         //}
     //}
-
     if(b > 2.2)
     {
         if(abs(matched_armor[0].center.x - 640) < abs(matched_armor[1].center.y - 640))
@@ -222,20 +216,27 @@ void ArmorProcess::ArmorDistanceCheck(std::vector<cv::RotatedRect> &matched_armo
 * @para     无
 * @return   无
 *****************************************/
-void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,std::vector<cv::RotatedRect> &final_armor,cv::Mat frame)
+void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect>&light_rect,std::vector<cv::RotatedRect> &matched_armor,std::vector<cv::RotatedRect> &final_armor,int &distance_mode,cv::Mat &frame)
 {
     final_armor.clear();
+    sort(light_rect.begin(),light_rect.end(),[](const RotatedRect& ld1, const RotatedRect& ld2)
+    {
+        return ld1.size.area() > ld2.size.area();
+    });
+    float area = (light_rect[0].size.area() + light_rect[1].size.area())/2;
+    std::cout << "area=" << area << std::endl;
+
     for(uint8_t i = 0; i< matched_armor.size();i++)
     {
-           auto rect_h = min(matched_armor[i].size.height,matched_armor[i].size.width);
-           auto rect_w = max(matched_armor[i].size.height,matched_armor[i].size.width);
-           auto ratio_h_w = rect_w * 1.0f / rect_h;
+        auto rect_h = min(matched_armor[i].size.height,matched_armor[i].size.width);
+        auto rect_w = max(matched_armor[i].size.height,matched_armor[i].size.width);
+        auto ratio_h_w = rect_w * 1.0f / rect_h;
 
            //测试大框长宽比范围
-           //char string6[10];
-           //double h_w_string = static_cast<double>(ratio_h_w);
-           //sprintf(string6,"%.1f",h_w_string);
-           //cv::putText(frame,string6,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+           char string6[10];
+           double h_w_string = static_cast<double>(ratio_h_w);
+           sprintf(string6,"%.1f",h_w_string);
+           cv::putText(frame,string6,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
            //std::cout << ratio_h_w << std::endl;
 
            //测试大框角度范围
@@ -252,16 +253,163 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect> &matched_armor,st
            //cv::putText(frame,string8,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
            //std::cout << matched_armor[i].size.area() << std::endl;
 
-           if(ratio_h_w < 2.3f && abs(abs(matched_armor[i].angle) - 90) > 75)
-           {
-              final_armor.push_back(matched_armor[i]);
-              char string7[10];
-              double a_string = static_cast<double>(matched_armor[i].angle);
-              sprintf(string7,"%.1f",a_string);
-              cv::putText(frame,string7,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
-              std::cout << matched_armor[i].angle << std::endl;
-           }
+        if(abs(abs(matched_armor[i].angle) - 90) > 75)
+        {
+            if(distance_mode == 1)
+            {
+                if(2463 < area && area < 3300)
+                {
+                    if(ratio_h_w < 2.45f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.75f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
 
+                }
+            }else if(distance_mode == 2)
+            {
+                if(3284 < area && area < 1848)
+                {
+                    if(ratio_h_w < 2.45f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.75f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 3)
+            {
+                if(450 < area && area < 1080)
+                {
+                    if(ratio_h_w < 2.45f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.75f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 4)
+            {
+                if(300 < area && area < 600)
+                {
+                    if(ratio_h_w < 2.35f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.65f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 5)
+            {
+                if(213 < area && area < 415)
+                {
+                    if(ratio_h_w < 2.35f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.65f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 6)
+            {
+                if(189 < area && area < 284)
+                {
+                    if(ratio_h_w < 2.25f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.55f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 7)
+            {
+                if(145 < area && area < 252)
+                {
+                    if(ratio_h_w < 2.25f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.55f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 8)
+            {
+                if(123 < area && area < 193)
+                {
+                    if(ratio_h_w < 2.15f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.45f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }else if(distance_mode == 9)
+            {
+                if(area < 163)
+                {
+                    if(ratio_h_w < 2.05f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+                }else
+                {
+                    if(ratio_h_w < 2.35f)
+                    {
+                        final_armor.push_back(matched_armor[i]);
+                    }
+
+                }
+
+            }
+
+        }
     }
 }
 /****************************************
@@ -368,7 +516,7 @@ void ArmorProcess::ArmorMatchedRect(std::vector<cv::RotatedRect> &light_rect,std
     matched_armor.clear();
     for(uint8_t i = 0;i < light_rect.size();i++)
     {
-        for(uint8_t j = i+1;j<light_rect.size();j++)
+        for(uint8_t j = i+1;j < light_rect.size();j++)
         {
             auto sub_center_x = abs(light_rect[i].center.x - light_rect[j].center.x);      //中心点x坐标差值
             auto sub_center_y = abs(light_rect[i].center.y - light_rect[j].center.y);      //中心点y坐标差值
@@ -438,7 +586,7 @@ void ArmorProcess::AdjustRotatedRect(cv::RotatedRect &rect)
 * @para     vector<RotatedRect>&light_rect
 * @return   无
 *****************************************/
-void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat frame)
+void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat frame, int &distance_mode)
 {
     std::vector<cv::RotatedRect> temp_light_rect;
     cv::Mat frame_select = cv::Mat::zeros(frame.size(),CV_8UC3);
@@ -466,21 +614,57 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
         //std::cout << temp_light_rect[i].center.x << std::endl;
 
         //测试底盘应该匹配的小灯条中心y差值
-        char string5[10];
-        double x_string = static_cast<double>(temp_light_rect[i].center.y);
-        sprintf(string5,"%.1f",x_string);
-        cv::putText(frame_select,string5,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+        //char string5[10];
+        //double x_string = static_cast<double>(temp_light_rect[i].center.y);
+        //sprintf(string5,"%.1f",x_string);
+        //cv::putText(frame_select,string5,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
         //std::cout << temp_light_rect[i].center.y << std::endl;
 
         //测试底盘应该匹配的小灯条高度差值
-        //char string4[10];
-        //double h_string = static_cast<double>(temp_light_rect[i].size.height);
-        //sprintf(string4,"%.1f",h_string);
-        //cv::putText(frame_select,string4,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+        char string4[10];
+        double h_string = static_cast<double>(temp_light_rect[i].size.height);
+        sprintf(string4,"%.1f",h_string);
+        cv::putText(frame_select,string4,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
         //std::cout << temp_light_rect[i].size.height << std::endl;
-
     }
 
+    if(temp_light_rect.size() > 0)
+    {
+        sort(temp_light_rect.begin(),temp_light_rect.end(),[](const RotatedRect& ld1, const RotatedRect& ld2)
+        {
+            return ld1.size.height > ld2.size.height;
+        });
+
+        if(120 <= temp_light_rect[0].size.height)
+        {
+            distance_mode = 1;
+        }else if(60 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 120)
+        {
+            distance_mode = 2;
+        }else if(41 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 60)
+        {
+            distance_mode = 3;
+        }else if(32 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 41)
+        {
+            distance_mode = 4;
+        }else if(26 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 32)
+        {
+            distance_mode = 5;
+        }else if(22 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 26)
+        {
+            distance_mode = 6;
+        }else if(20 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 22)
+        {
+            distance_mode = 7;
+        }else if(18 <= temp_light_rect[0].size.height && temp_light_rect[0].size.height < 20)
+        {
+            distance_mode = 8;
+        }else if(temp_light_rect[0].size.height < 18)
+        {
+            distance_mode = 9;
+        }
+
+    }
     imshow("frame_select",frame_select);
     light_rect = temp_light_rect;
 }

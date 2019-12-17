@@ -40,8 +40,6 @@ void VisualProc::produce()
             fight_info.armor_color = ArmorType;
             if(mode == 0)
             {
-                //cv::Rect roi = armor.GetRoi(src_image);
-                //src_image = src_image(roi);
                 armor.ArmorDetect(src_image,fight_info,usb_serial);
             }
             else if (mode == 1)
@@ -75,7 +73,7 @@ void VisualProc::produce()
             cv::putText(src_image, str,cv::Point(230, 50),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0, 255, 0),2);
         }
         imshow("src_image",src_image);
-        if(cv::waitKey(50) == 'q')
+        if(cv::waitKey(1) == 'q')
         {
             cv::destroyAllWindows();
             break;
