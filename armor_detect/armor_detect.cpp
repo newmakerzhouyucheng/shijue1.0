@@ -4,10 +4,10 @@
 #include "usb_serial/serial_usb.h"
 #include "main/visual_proc.h"
 
+using namespace cv::ml;
 
 #define DEBUG_SHOW
 #define DEBUG_DLB_SHOW
-
 
 #define POINT_DIST(p1,p2) std::sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y))
 cv::Rect ArmorProcess::GetRoi(cv::Mat &src_image)
@@ -97,8 +97,9 @@ void ArmorProcess::ArmorDetect(cv::Mat frame,ArmorPosture &fight_info,UsbSerial 
             for(uint i = 0; i< frame_final.size(); i++)
             {
                 pc_data[7] = 1;
-                DrawArmorRect(frame,frame_final[i],cv::Scalar(160, 15, 190),2);  //画大框
+                DrawArmorRect(frame,frame_final[i],cv::Scalar(160, 15, 190),1);  //画大框
                 armor_Solver.PnPSolver(frame_final[i],fight_info);  //包含pnp结算和数据处理
+                //armor_Solver.SVMSolver(frame_final[i]);
                 armor_Solver.SolverDataProcess(pc_data,fight_info);
             }
     }
@@ -162,16 +163,7 @@ void ArmorProcess::ArmorHeightCheck(std::vector<cv::RotatedRect> &matched_armor,
     double area_minus = static_cast<double>(matched_armor[0].size.area() - matched_armor[1].size.area());
     double a = static_cast<double>(MAX(matched_armor[0].size.area(), matched_armor[1].size.area()));
     double b = static_cast<double>(a/area_minus);
-    //if(b > 2.2)
-    //{
-        //if(matched_armor[0].center.x < matched_armor[1].center.x)
-        //{
-            //final_armor = matched_armor[0];
-        //}else
-        //{
-            //final_armor = matched_armor[1];
-        //}
-    //}
+
     if(b > 2.2)
     {
         if(abs(matched_armor[0].center.x - 640) < abs(matched_armor[1].center.y - 640))
@@ -224,7 +216,7 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect>&light_rect,std::v
         return ld1.size.area() > ld2.size.area();
     });
     float area = (light_rect[0].size.area() + light_rect[1].size.area())/2;
-    std::cout << "area=" << area << std::endl;
+    //std::cout << "area=" << area << std::endl;
 
     for(uint8_t i = 0; i< matched_armor.size();i++)
     {
@@ -233,10 +225,10 @@ void ArmorProcess::ArmorRectCheck(std::vector<cv::RotatedRect>&light_rect,std::v
         auto ratio_h_w = rect_w * 1.0f / rect_h;
 
            //测试大框长宽比范围
-           char string6[10];
-           double h_w_string = static_cast<double>(ratio_h_w);
-           sprintf(string6,"%.1f",h_w_string);
-           cv::putText(frame,string6,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+           //char string6[10];
+           //double h_w_string = static_cast<double>(ratio_h_w);
+           //sprintf(string6,"%.1f",h_w_string);
+           //cv::putText(frame,string6,matched_armor[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
            //std::cout << ratio_h_w << std::endl;
 
            //测试大框角度范围
@@ -493,7 +485,7 @@ DetectLightBarBgr(cv::Mat &frame,vector<cv::RotatedRect>&light_rect,ArmorPosture
     //imshow("gray_binary",gray_binary);
     //imshow("color_minus_binary",color_minus_binary);
     //imshow("combine_binary",combine_binary);
-    imshow("light_rectangle",light_rectangle);
+    //imshow("light_rectangle",light_rectangle);
 
     light_rect = light_line_conbine;
  
@@ -621,10 +613,10 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
         //std::cout << temp_light_rect[i].center.y << std::endl;
 
         //测试底盘应该匹配的小灯条高度差值
-        char string4[10];
-        double h_string = static_cast<double>(temp_light_rect[i].size.height);
-        sprintf(string4,"%.1f",h_string);
-        cv::putText(frame_select,string4,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
+        //char string4[10];
+        //double h_string = static_cast<double>(temp_light_rect[i].size.height);
+        //sprintf(string4,"%.1f",h_string);
+        //cv::putText(frame_select,string4,temp_light_rect[i].center,cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,255,0),2);
         //std::cout << temp_light_rect[i].size.height << std::endl;
     }
 
@@ -665,7 +657,7 @@ void ArmorProcess::CheckLightBarRect(vector<cv::RotatedRect>&light_rect,cv::Mat 
         }
 
     }
-    imshow("frame_select",frame_select);
+    //imshow("frame_select",frame_select);
     light_rect = temp_light_rect;
 }
 

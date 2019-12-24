@@ -9,9 +9,10 @@ SOURCES += \
     armor_detect/armor_detect.cpp \
     usb_serial/serial_usb.cpp \
     Info_solver/angle_solver.cpp \
-    main/visual_proc.cpp
+    main/visual_proc.cpp \
 
 HEADERS += \
+    /usr/local/include \
     /usr/local/include/opencv \
     /usr/local/include/opencv2 \
     cam_driver/DVPCamera.h \
@@ -19,7 +20,8 @@ HEADERS += \
     armor_detect/armor_detect.h \
     usb_serial/serial_usb.h \
     Info_solver/angle_solver.h \
-    main/visual_proc.h
+    main/visual_proc.h \
+    Info_solver/mnist.h
 
 LIBS += /usr/local/lib/libopencv*.so.* \
         /usr/local/lib/libD3tKit.so \

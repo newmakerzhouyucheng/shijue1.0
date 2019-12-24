@@ -1,5 +1,11 @@
-#include "angle_solver.h"
-
+﻿#include "angle_solver.h"
+#include <iostream>
+#include <opencv2/opencv.hpp>
+#include <opencv2/ml.hpp>
+#include "mnist.h"
+using namespace std;
+using namespace cv;
+using namespace cv::ml;
 
 /****************************************
 * @funcName void PnPSolver();
@@ -21,18 +27,19 @@ void AngleSolver::PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info
 
     double angle_yaw = atan2(abs(tx),tz) * 180 / 3.1415926;
 
-    double angle_pitch = atan((abs(ty))/tz * 1.0) * 180 / 3.1415926;
+    double angle_pitch = atan((abs(ty))/tz * 1.0) * 180 / 3.1415926 ;
     fight_info.diatance = dis;
-    fight_info.armor_yaw = angle_yaw;
+    fight_info.armor_yaw = angle_yaw ;
     fight_info.armor_pitch = angle_pitch;
     if(tx >0)
     {
-        fight_info.armor_yaw = angle_yaw;
+        fight_info.armor_yaw = angle_yaw + 3.6;
     }
     else
     {
-         fight_info.armor_yaw = -angle_yaw;
+         fight_info.armor_yaw = -angle_yaw + 3.6;
     }
+
     if(ty > 0)
     {
         fight_info.armor_pitch = angle_pitch;
@@ -41,15 +48,88 @@ void AngleSolver::PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info
     {
         fight_info.armor_pitch = -angle_pitch;
     }
-    if(dis>= 200 && dis<= 350)
+
+    if(dis>= 180 && dis<= 230)
     {
-        fight_info.armor_pitch += 1.5;
+        fight_info.armor_pitch -= 2.0;
     }
-    else if(dis > 350 && dis<= 450)
+    else if(dis > 230 && dis<= 280)
     {
-        fight_info.armor_pitch += 0.5;
+        fight_info.armor_pitch -= 3.0;
     }
-    //cout<<"距离值="<<dis<<"cm"<<"yaw"<<fight_info.armor_yaw<<"Pitch"<<fight_info.armor_pitch<<endl;
+    else if(dis > 280 && dis<= 330)
+    {
+        fight_info.armor_pitch -= 4.0;
+    }
+    else if(dis > 330 && dis<= 380)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+    else if(dis > 380 && dis<= 430)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+    else if(dis > 430 && dis<= 480)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+    else if(dis > 480 && dis<= 530)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+    else if(dis > 530 && dis<= 580)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+    else if(dis > 580)
+    {
+        fight_info.armor_pitch -= 5.0;
+    }
+
+    cout<<"距离值="<<dis<<"cm "<<"yaw="<<fight_info.armor_yaw<<" Pitch="<<fight_info.armor_pitch<<endl;
+}
+
+void AngleSolver::SVMSolver(cv::RotatedRect object_rect)
+{
+    cv::Ptr<SVM> svm = SVM::create();
+    svm->setType(SVM::C_SVC);
+    svm->setKernel(SVM::RBF);
+    //svm->setDegree(10.0);
+    svm->setGamma(0.01);
+    //svm->setCoef0(1.0);
+    svm->setC(10.0);
+    //svm->setNu(0.5);
+    //svm->setP(0.1);
+    svm->setTermCriteria(TermCriteria(CV_TERMCRIT_EPS, 1000, FLT_EPSILON));
+    //cout << "开始导入SVM文件...\n";
+    //Ptr<SVM> svm1 = StatModel::load<SVM>("mnist_svm.xml");
+     Ptr<SVM> svm1 = StatModel::load<SVM>("/home/newmaker/ZZZ/svm/NUM/build-svm_num-Desktop_Qt_5_13_1_GCC_64bit-Debug/mnist.xml");
+    //cout << "成功导入SVM文件...\n";
+    //------------------------ 6. read the test dataset -------------------------------------------
+    //cout << "开始导入测试数据...\n";
+
+    Mat testData;
+    Mat tLabel;
+    //testData = read_mnist_image1(testImage);
+    //tLabel = read_mnist_label1(testLabel);
+
+     //Mat sample = testData.row(110);
+     Mat sample = imread("/home/newmaker/ZZZ/svm/NUM/build-svm_num-Desktop_Qt_5_13_1_GCC_64bit-Debug/0.png");
+     cvtColor(sample,sample,CV_BGR2GRAY);
+     threshold(sample,sample,200,255,CV_THRESH_BINARY);
+   //imshow("GRAY",sample);
+   Mat dst = Mat::zeros(28, 28, CV_32FC1);
+   resize(sample, dst, dst.size());
+    dst = dst / 255;
+    //imshow("reshape",dst);
+    dst.convertTo(dst,CV_32FC1);
+    Mat p = dst.reshape(0, 1);
+
+   p.convertTo(p,CV_32FC1);
+   //imshow("reshape1",p);
+
+    float res = svm1->predict(p);
+    cout << "数字为"<<res<< endl;
 }
 
 /****************************************
@@ -106,7 +186,7 @@ void AngleSolver::GetAngleDistance(const std::vector<cv::Point2f> & points2d, cv
     //小装甲
     //float half_x = 13.8f/2.0f;  //width_target / 2.0;
     float half_x = 13.5f/2.0f;
-    float half_y = 5.4f/2.0f;  //height_target / 2.0;
+    float half_y = 5.6f/2.0f;  //height_target / 2.0;
     //三维点
     point3d.push_back(Point3f(-half_x, -half_y, 0));
     point3d.push_back(Point3f(half_x, -half_y, 0));
@@ -114,10 +194,12 @@ void AngleSolver::GetAngleDistance(const std::vector<cv::Point2f> & points2d, cv
     point3d.push_back(Point3f(-half_x, half_y, 0));
 
     cv::Mat r;
+//    Mat cam_matrix = (Mat_<double>(3,3)<<2103.4000,-0.0779,651.9514,0,2104.6000,538.7909,0,0,1);
+//    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.1937,-2.7904,0.0075,0.0125,0);  //bb
     Mat cam_matrix = (Mat_<double>(3,3)<<2132.39692,0,767.66209,0,2166.36857,525.69460,0,0,1);
-    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.08189,5.37811,0.03338,0.01634,0);
+    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.08189,5.37811,0.03338,0.01634,0);  //sb
 //    Mat cam_matrix = (Mat_<double>(3,3)<<622.10421,0,355.07792,0,629.61051,256.2444,0,0,1);
-//    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.42574,0.29455,-0.00056,0.00119,0);
+//    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.42574,0.29455,-0.00056,0.00119,0);  //xxj
     cv::solvePnP(point3d, points2d, cam_matrix, distortion_coeff, r, trans);
     Rodrigues(r, rot);  //旋转向量和旋转矩阵的变换
 }
@@ -134,8 +216,10 @@ void AngleSolver::GetAngleDistance_big(const std::vector<cv::Point2f> & points2d
     point3d.push_back(Point3f(-half_x, half_y, 0));
 
     cv::Mat r;
-    Mat cam_matrix = (Mat_<double>(3,3)<<2132.39692,0,767.66209,0,2166.36857,525.69460,0,0,1);
-    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.08189,5.37811,0.03338,0.01634,0);
+    //Mat cam_matrix = (Mat_<double>(3,3)<<2132.39692,0,767.66209,0,2166.36857,525.69460,0,0,1);
+    //Mat distortion_coeff = (Mat_<double>(5,1)<<-0.08189,5.37811,0.03338,0.01634,0);
+    Mat cam_matrix = (Mat_<double>(3,3)<<2122.2000,-0.4886,624.0172,0,2119.5000,456.1036,0,0,1);
+    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.3507,1.2761,0.0076,0.0057,0);
 //    Mat cam_matrix = (Mat_<double>(3,3)<<622.10421,0,355.07792,0,629.61051,256.2444,0,0,1);
 //    Mat distortion_coeff = (Mat_<double>(5,1)<<-0.42574,0.29455,-0.00056,0.00119,0);
     cv::solvePnP(point3d, points2d, cam_matrix, distortion_coeff, r, trans);

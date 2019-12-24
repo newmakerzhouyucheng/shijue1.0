@@ -60,6 +60,7 @@ bool UsbSerial::SerialSendData(uint8_t* serial_data)
 {
     int  bytes_written  = 0;
     bytes_written = write(fd,serial_data,10);
+    std::cout << "OK" << std::endl;
 }
 
 void UsbSerial::SerialRecData(uint8_t * serial_data)
@@ -73,7 +74,7 @@ void UsbSerial::SerialRecData(uint8_t * serial_data)
         for(int i = 0;i<bytes_read;i++)
         {
             serial_data[i] = read_buffer[i];
-            cout<<serial_data[i]<<endl;
+            //cout<<serial_data[i]<<endl;
         }
     }
 }

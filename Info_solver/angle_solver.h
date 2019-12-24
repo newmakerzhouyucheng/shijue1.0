@@ -19,6 +19,7 @@ class AngleSolver
 {
 public:
     void PnPSolver(cv::RotatedRect object_rect,ArmorPosture &fight_info);
+    void SVMSolver(cv::RotatedRect object_rect);
     void SolverDataProcess(uint8_t *armor_data,ArmorPosture fight_info);
     void AngleChange(ArmorPosture &fight_info);
     void GetImage2dPoint(cv::RotatedRect object_rect,std::vector<Point2f> &object2d_point,ArmorPosture fight_info);
